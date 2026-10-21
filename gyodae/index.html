@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>교대달력 플러스</title>
+<meta name="description" content="근무 패턴을 바꿔도 지난 기록이 남는 교대근무 달력. 월 근무시간·야간시간·휴일근무 집계, 광고 없음, 오프라인 동작.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#F4F6FA;--card:#fff;--ink:#1B2433;--sub:#5B6676;--line:#E2E7EF;--pri:#1F3A5F;--acc:#F2A93B;--red:#D64545;--blue:#2E6FD8;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;font-size:16px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:var(--pri);color:#fff;padding:12px 16px calc(12px);display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.3px}
+header .ver{font-size:12px;opacity:.75}
+main{padding:12px 12px 96px;max-width:560px;margin:0 auto}
+.card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(20,30,50,.06)}
+.card h2{font-size:16px;margin:0 0 10px}
+.muted{color:var(--sub);font-size:13px}
+.row{display:flex;gap:8px;align-items:center}
+.row.wrap{flex-wrap:wrap}
+.spacer{flex:1}
+.btn{min-height:44px;min-width:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+.btn.warn{color:var(--red);border-color:#F1C9C9}
+.btn.sm{min-height:44px;padding:0 10px;font-size:14px}
+.btn:active{transform:scale(.98)}
+.today{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.today .box{border-radius:12px;padding:10px 12px;border:1px solid var(--line)}
+.today .lbl{font-size:12px;color:var(--sub)}
+.today .val{font-size:20px;font-weight:800;margin-top:2px}
+.today .tm{font-size:13px;color:var(--sub)}
+.mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mnav strong{font-size:18px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{text-align:center;font-size:12px;color:var(--sub);padding:2px 0}
+.cal .wd.sun{color:var(--red)}.cal .wd.sat{color:var(--blue)}
+.day{min-height:58px;border-radius:10px;border:1px solid var(--line);background:#fff;padding:3px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;position:relative}
+.day.out{opacity:.35}
+.day.is-today{outline:2px solid var(--acc);outline-offset:-1px}
+.day .dn{font-size:12px;font-weight:600}
+.day.sun .dn,.day.hol .dn{color:var(--red)}.day.sat .dn{color:var(--blue)}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:24px;padding:0 6px;border-radius:7px;color:#fff;font-size:13px;font-weight:700}
+.day .dot{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--acc)}
+.day .hn{font-size:9px;color:var(--red);line-height:1;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav.tabs button{min-height:56px;border:0;background:none;font-size:13px;color:var(--sub);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-selected="true"]{color:var(--pri);font-weight:700}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.seq{display:flex;flex-wrap:wrap;gap:4px}
+label.f{display:block;font-size:13px;color:var(--sub);margin:10px 0 4px}
+input[type=text],input[type=number],input[type=date],input[type=time],select{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff}
+input[type=color]{width:44px;height:44px;border:1px solid var(--line);border-radius:10px;padding:2px;background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat .s{border:1px solid var(--line);border-radius:12px;padding:10px}
+.stat .s b{display:block;font-size:22px}
+.stat .s span{font-size:12px;color:var(--sub)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+td.n,th.n{text-align:right}
+.sheet-bg{position:fixed;inset:0;background:rgba(10,20,35,.45);display:none;z-index:20;align-items:flex-end;justify-content:center}
+.sheet-bg.open{display:flex}
+.sheet{background:#fff;width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+.typegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.typegrid button{min-height:52px;border-radius:12px;border:2px solid transparent;color:#fff;font-weight:700;cursor:pointer}
+.typegrid button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset}
+.toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:#1B2433;color:#fff;padding:10px 14px;border-radius:12px;font-size:14px;display:none;z-index:30;max-width:92%;align-items:center;gap:10px}
+.toast.show{display:flex}
+.toast button{min-height:44px;background:var(--acc);color:#1B2433;border:0;border-radius:10px;padding:0 12px;font-weight:700}
+.notice{background:#FFF7E8;border:1px solid #F5DDAE;border-radius:12px;padding:10px 12px;font-size:13px;color:#6A4B12}
+a{color:var(--blue)}
+.hidden{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header>
+  <h1>교대달력 플러스</h1>
+  <span class="ver" id="hdrVer"></span>
+</header>
+
+<main>
+  <!-- 달력 -->
+  <section id="tab-cal" role="tabpanel" aria-label="달력">
+    <div class="card" id="todayCard"></div>
+    <div class="card">
+      <div class="mnav">
+        <button class="btn sm" id="prevM" aria-label="이전 달">‹</button>
+        <strong id="calTitle"></strong>
+        <button class="btn sm" id="nextM" aria-label="다음 달">›</button>
+      </div>
+      <div class="cal" id="cal" role="grid" aria-label="월간 근무 달력"></div>
+      <div class="row" style="margin-top:10px"><button class="btn sm" id="goToday" aria-label="오늘로 이동">오늘</button><span class="spacer"></span><span class="muted">날짜를 누르면 근무 변경·메모</span></div>
+    </div>
+  </section>
+
+  <!-- 집계 -->
+  <section id="tab-sum" role="tabpanel" aria-label="월 집계" class="hidden">
+    <div class="card">
+      <div class="mnav">
+        <button class="btn sm" id="prevS" aria-label="이전 달">‹</button>
+        <strong id="sumTitle"></strong>
+        <button class="btn sm" id="nextS" aria-label="다음 달">›</button>
+      </div>
+      <div class="stat" id="sumStat"></div>
+    </div>
+    <div class="card" id="payCard"></div>
+    <div class="card"><h2>근무 유형별 횟수</h2><table id="sumTable"></table></div>
+    <div class="card"><h2>이번 달 변경·메모</h2><div id="sumMemo" class="list"></div></div>
+    <div class="card"><div class="row wrap"><button class="btn pri" id="copyMonth" aria-label="이번 달 근무표를 텍스트로 복사">근무표 텍스트 복사</button></div><p class="muted">단톡방·메모에 붙여 넣을 수 있는 형식으로 복사합니다.</p></div>
+  </section>
+
+  <!-- 패턴 -->
+  <section id="tab-pat" role="tabpanel" aria-label="근무 패턴" class="hidden">
+    <div class="card">
+      <h2>적용 중인 패턴 기간</h2>
+      <p class="muted">새 패턴은 지정한 시작일부터만 적용됩니다. 그 전 날짜의 근무 기록은 바뀌지 않습니다.</p>
+      <div id="periodList" class="list"></div>
+    </div>
+    <div class="card">
+      <h2>새 패턴 적용</h2>
+      <label class="f" for="preset">프리셋</label>
+      <select id="preset" aria-label="패턴 프리셋"></select>
+      <label class="f">순서 (아래 버튼으로 추가)</label>
+      <div class="seq" id="seqView" aria-live="polite"></div>
+      <div class="typegrid" id="seqBtns" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:8px"><button class="btn sm" id="seqBack" aria-label="마지막 칸 지우기">한 칸 지우기</button><button class="btn sm" id="seqClear" aria-label="순서 전체 지우기">전체 지우기</button></div>
+      <div class="grid2">
+        <div><label class="f" for="pFrom">시작일</label><input type="date" id="pFrom"></div>
+        <div><label class="f" for="pOffset">시작일의 근무</label><select id="pOffset" aria-label="시작일에 해당하는 칸"></select></div>
+      </div>
+      <button class="btn pri" id="applyPat" style="width:100%;margin-top:12px" aria-label="패턴 적용">이 날짜부터 적용</button>
+    </div>
+    <div class="card">
+      <h2>근무 유형</h2>
+      <p class="muted">시간·휴게를 입력하면 월 근무시간과 야간시간이 계산됩니다.</p>
+      <div id="typeList" class="list"></div>
+      <button class="btn" id="addType" style="width:100%;margin-top:10px" aria-label="근무 유형 추가">+ 유형 추가</button>
+    </div>
+  </section>
+
+  <!-- 설정 -->
+  <section id="tab-set" role="tabpanel" aria-label="설정" class="hidden">
+    <div class="card">
+      <h2>수당 추정 설정</h2>
+      <div class="notice">참고용 추정치입니다. 실제 급여는 근로계약·취업규칙·회사 규정이 우선하며, 상시 5인 미만 사업장은 법정 가산이 적용되지 않을 수 있습니다.</div>
+      <label class="f" for="wage">통상시급(원)</label><input type="number" id="wage" inputmode="numeric" min="0" step="10">
+      <div class="grid2">
+        <div><label class="f" for="nightRate">야간 가산율(%)</label><input type="number" id="nightRate" inputmode="numeric" min="0"></div>
+        <div><label class="f" for="holRate">휴일 8시간 이내(%)</label><input type="number" id="holRate" inputmode="numeric" min="0"></div>
+      </div>
+      <label class="f" for="hol8Rate">휴일 8시간 초과(%)</label><input type="number" id="hol8Rate" inputmode="numeric" min="0">
+      <label class="row" style="margin-top:12px;min-height:44px"><input type="checkbox" id="sunHol" style="width:24px;height:24px"> <span>일요일도 휴일근무로 계산</span></label>
+      <p class="muted">기본값: 야간(22:00~06:00) 50%, 휴일 8시간 이내 50%·초과 100% (근로기준법 제56조 기준).</p>
+    </div>
+    <div class="card">
+      <h2>내 휴일 추가</h2>
+      <p class="muted">회사 창립기념일 등 휴일근무로 볼 날짜를 추가합니다.</p>
+      <div class="grid2"><input type="date" id="chDate" aria-label="휴일 날짜"><input type="text" id="chName" maxlength="20" placeholder="휴일 이름" aria-label="휴일 이름"></div>
+      <button class="btn" id="chAdd" style="width:100%;margin-top:8px" aria-label="휴일 추가">추가</button>
+      <div id="chList" class="list" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h2>백업·복원</h2>
+      <p class="muted">기록은 이 기기에만 저장됩니다. 기기 변경·앱 삭제 전에 백업 파일을 저장하세요.</p>
+      <div class="row wrap"><button class="btn pri" id="backup" aria-label="백업 파일 저장">백업 파일 저장</button><button class="btn" id="restoreBtn" aria-label="백업 파일로 복원">복원</button><input type="file" id="restoreFile" accept="application/json,.json" class="sr" aria-label="백업 파일 선택"></div>
+      <button class="btn warn" id="resetAll" style="margin-top:10px" aria-label="모든 기록 삭제">모든 기록 삭제</button>
+    </div>
+    <div class="card">
+      <h2>정보</h2>
+      <table>
+        <tr><th>앱 버전</th><td id="infoVer"></td></tr>
+        <tr><th>운영</th><td>큐에이 플러스</td></tr>
+        <tr><th>공휴일 데이터</th><td>2026~2027년 (내 휴일로 보완)</td></tr>
+        <tr><th>개인정보</th><td><a href="./privacy.html" id="privacyLink">개인정보처리방침</a></td></tr>
+      </table>
+      <p class="muted">광고와 회원가입이 없고, 입력한 내용은 외부로 전송되지 않습니다.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" role="tablist" aria-label="화면 이동">
+  <button role="tab" data-tab="cal" aria-selected="true" aria-label="달력"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>달력</button>
+  <button role="tab" data-tab="sum" aria-selected="false" aria-label="월 집계"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>집계</button>
+  <button role="tab" data-tab="pat" aria-selected="false" aria-label="근무 패턴"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>패턴</button>
+  <button role="tab" data-tab="set" aria-selected="false" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>설정</button>
+</nav>
+
+<!-- 날짜 편집 시트 -->
+<div class="sheet-bg" id="sheetBg" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet">
+    <div class="row"><h2 id="sheetTitle" style="margin:0;font-size:18px"></h2><span class="spacer"></span><button class="btn sm" id="sheetClose" aria-label="닫기">닫기</button></div>
+    <p class="muted" id="sheetInfo"></p>
+    <div class="typegrid" id="sheetTypes"></div>
+    <label class="f" for="sheetMemo">메모 (연차, 교대 맞바꿈 등)</label>
+    <input type="text" id="sheetMemo" maxlength="60" placeholder="예: 연차, 김OO와 교대">
+    <div class="row" style="margin-top:12px"><button class="btn" id="sheetReset" aria-label="패턴대로 되돌리기">패턴대로</button><span class="spacer"></span><button class="btn pri" id="sheetSave" aria-label="저장">저장</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn" class="hidden">새로고침</button></div>
+
+<script>
+'use strict';
+const APP_VERSION = '1.0.0';
+const SLUG = 'gyodae';
+const KEY = SLUG + '_data_v1';
+
+/* ---------- 공휴일 (2026~2027) ---------- */
+const HOLIDAYS = {
+  '2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴','2026-03-01':'삼일절','2026-03-02':'대체공휴일',
+  '2026-05-01':'노동절','2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'대체공휴일','2026-06-03':'지방선거','2026-06-06':'현충일',
+  '2026-07-17':'제헌절','2026-08-15':'광복절','2026-08-17':'대체공휴일','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
+  '2026-10-03':'개천절','2026-10-05':'대체공휴일','2026-10-09':'한글날','2026-12-25':'성탄절',
+  '2027-01-01':'신정','2027-02-06':'설날 연휴','2027-02-07':'설날','2027-02-08':'설날 연휴','2027-02-09':'대체공휴일','2027-03-01':'삼일절',
+  '2027-05-01':'노동절','2027-05-03':'대체공휴일','2027-05-05':'어린이날','2027-05-13':'부처님오신날','2027-06-06':'현충일',
+  '2027-07-17':'제헌절','2027-07-19':'대체공휴일','2027-08-15':'광복절','2027-08-16':'대체공휴일','2027-09-14':'추석 연휴','2027-09-15':'추석','2027-09-16':'추석 연휴',
+  '2027-10-03':'개천절','2027-10-04':'대체공휴일','2027-10-09':'한글날','2027-10-11':'대체공휴일','2027-12-25':'성탄절','2027-12-27':'대체공휴일'
+};
+
+/* ---------- 기본 데이터 ---------- */
+const DEFAULT_TYPES = [
+  {id:'D', name:'주간', short:'주', color:'#2E6FD8', start:'07:00', end:'19:00', brk:60, work:true},
+  {id:'N', name:'야간', short:'야', color:'#5B3FA8', start:'19:00', end:'07:00', brk:60, work:true},
+  {id:'A', name:'비번', short:'비', color:'#8A94A6', start:'', end:'', brk:0, work:false},
+  {id:'O', name:'휴무', short:'휴', color:'#2E9E6B', start:'', end:'', brk:0, work:false},
+  {id:'T', name:'당직(24시간)', short:'당', color:'#D46A1F', start:'09:00', end:'09:00', brk:180, work:true}
+];
+const PRESETS = [
+  {name:'주야비휴 (4일 주기)', seq:['D','N','A','O']},
+  {name:'주주야야비휴 (6일 주기)', seq:['D','D','N','N','A','O']},
+  {name:'주주주야야야비휴휴 (9일 주기)', seq:['D','D','D','N','N','N','A','O','O']},
+  {name:'당비휴 (3일 주기)', seq:['T','A','O']},
+  {name:'주주주주주휴휴 (7일 주기)', seq:['D','D','D','D','D','O','O']},
+  {name:'직접 만들기', seq:[]}
+];
+function defaults(){
+  return {types: JSON.parse(JSON.stringify(DEFAULT_TYPES)), periods: [], overrides: {}, custHol: {},
+    settings: {wage:0, nightRate:50, holRate:50, hol8Rate:100, sunHol:false}};
+}
+
+/* ---------- 저장소 ---------- */
+let S = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return defaults();
+    return normalize(JSON.parse(raw));
+  }catch(e){ return defaults(); }
+}
+function normalize(d){
+  const b = defaults();
+  if(!d || typeof d !== 'object') return b;
+  b.types = Array.isArray(d.types) && d.types.length ? d.types.filter(t=>t && t.id).map(t=>({id:String(t.id), name:String(t.name||'근무').slice(0,20), short:String(t.short||'?').slice(0,2), color:/^#[0-9a-fA-F]{6}$/.test(t.color)?t.color:'#8A94A6', start:validTime(t.start), end:validTime(t.end), brk:Math.max(0,Number(t.brk)||0), work:!!t.work})) : b.types;
+  b.periods = Array.isArray(d.periods) ? d.periods.filter(p=>p && isYmd(p.from) && Array.isArray(p.seq) && p.seq.length).map(p=>({from:p.from, seq:p.seq.map(String)})) : [];
+  b.periods.sort((x,y)=>x.from<y.from?-1:1);
+  b.overrides = {}; if(d.overrides && typeof d.overrides==='object'){ for(const k in d.overrides){ if(isYmd(k)){ const o=d.overrides[k]||{}; b.overrides[k]={t:o.t?String(o.t):'', memo:String(o.memo||'').slice(0,60)}; } } }
+  b.custHol = {}; if(d.custHol && typeof d.custHol==='object'){ for(const k in d.custHol){ if(isYmd(k)) b.custHol[k]=String(d.custHol[k]).slice(0,20); } }
+  if(d.settings) for(const k of ['wage','nightRate','holRate','hol8Rate']){ const v=Number(d.settings[k]); if(isFinite(v)&&v>=0) b.settings[k]=v; }
+  if(d.settings) b.settings.sunHol = !!d.settings.sunHol;
+  return b;
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); return true; }
+  catch(e){ toast('저장 공간이 부족해 저장하지 못했습니다.'); return false; }
+}
+
+/* ---------- 유틸 ---------- */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function isYmd(s){ return typeof s==='string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+function validTime(s){ return (typeof s==='string' && /^\d{2}:\d{2}$/.test(s)) ? s : ''; }
+function pad(n){ return String(n).padStart(2,'0'); }
+function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function parseYmd(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function dayNum(s){ const [y,m,d]=s.split('-').map(Number); return Math.round(Date.UTC(y,m-1,d)/86400000); }
+function addDays(s,n){ const d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); }
+const WD = ['일','월','화','수','목','금','토'];
+function typeById(id){ return S.types.find(t=>t.id===id) || null; }
+function mins(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function fmtH(m){ const h=Math.floor(m/60), r=Math.round(m%60); return r? h+'시간 '+r+'분' : h+'시간'; }
+function won(n){ return Math.round(n).toLocaleString('ko-KR')+'원'; }
+
+/* ---------- 근무 계산 ---------- */
+function patternShift(date){
+  let p=null; for(const x of S.periods){ if(x.from<=date) p=x; else break; }
+  if(!p) return null;
+  const i = ((dayNum(date)-dayNum(p.from)) % p.seq.length + p.seq.length) % p.seq.length;
+  return p.seq[i];
+}
+function shiftOf(date){ const o=S.overrides[date]; if(o && o.t) return o.t; return patternShift(date); }
+function holidayName(date){
+  if(S.custHol[date]) return S.custHol[date];
+  if(HOLIDAYS[date]) return HOLIDAYS[date];
+  return '';
+}
+function isHolidayWork(date){ return !!holidayName(date) || (S.settings.sunHol && parseYmd(date).getDay()===0); }
+/* 하루 근무시간(휴게 차감)과 야간시간(22:00~06:00, 휴게 미차감) */
+function hoursOf(t){
+  if(!t || !t.work || !t.start || !t.end) return {net:0, night:0};
+  const s=mins(t.start); let e=mins(t.end); if(e<=s) e+=1440;
+  const gross=e-s, net=Math.max(0, gross-(t.brk||0));
+  let night=0;
+  for(const [a,b] of [[-120,360],[1320,1800],[2760,3240]]){ night += Math.max(0, Math.min(e,b)-Math.max(s,a)); }
+  return {net, night:Math.min(night, gross)};
+}
+function monthSummary(y,m){
+  const last=new Date(y,m+1,0).getDate();
+  const res={days:[], count:{}, workDays:0, net:0, night:0, hol:0, pay:0};
+  const st=S.settings;
+  for(let d=1; d<=last; d++){
+    const ds=y+'-'+pad(m+1)+'-'+pad(d);
+    const id=shiftOf(ds); const t=typeById(id);
+    if(id) res.count[id]=(res.count[id]||0)+1;
+    const h=hoursOf(t);
+    if(t && t.work){ res.workDays++; }
+    res.net+=h.net; res.night+=h.night;
+    let holM=0; if(t && t.work && isHolidayWork(ds)){ holM=h.net; res.hol+=holM; }
+    const w=st.wage||0;
+    res.pay += w*( (h.night/60)*st.nightRate/100 + (Math.min(holM,480)/60)*st.holRate/100 + (Math.max(holM-480,0)/60)*st.hol8Rate/100 );
+    res.days.push({ds, id, t});
+  }
+  return res;
+}
+
+/* ---------- 화면 상태 ---------- */
+const now=new Date();
+let view={y:now.getFullYear(), m:now.getMonth()};
+let sview={y:now.getFullYear(), m:now.getMonth()};
+let seqDraft=[];
+let editDate=null, editType=null;
+
+function chipHtml(t){ if(!t) return '<span class="chip" style="background:#C9D0DB">-</span>'; return '<span class="chip" style="background:'+esc(t.color)+'">'+esc(t.short)+'</span>'; }
+
+function renderToday(){
+  const td=ymd(new Date()), tm=addDays(td,1);
+  const box=(lbl,ds)=>{ const t=typeById(shiftOf(ds)); const tt= t && t.work && t.start ? esc(t.start)+'~'+esc(t.end) : (t? '근무 없음':'패턴 미설정');
+    return '<div class="box" style="border-left:6px solid '+(t?esc(t.color):'#C9D0DB')+'"><div class="lbl">'+lbl+' · '+(parseYmd(ds).getMonth()+1)+'/'+parseYmd(ds).getDate()+'('+WD[parseYmd(ds).getDay()]+')</div><div class="val">'+(t?esc(t.name):'-')+'</div><div class="tm">'+tt+'</div></div>'; };
+  let h='<div class="today">'+box('오늘',td)+box('내일',tm)+'</div>';
+  if(!S.periods.length) h+='<p class="muted" style="margin:10px 0 0">아직 근무 패턴이 없습니다. <button class="btn sm pri" id="goPat" aria-label="패턴 설정으로 이동">패턴 설정하기</button></p>';
+  document.getElementById('todayCard').innerHTML=h;
+  const g=document.getElementById('goPat'); if(g) g.onclick=()=>showTab('pat');
+}
+function renderCal(){
+  const {y,m}=view;
+  document.getElementById('calTitle').textContent=y+'년 '+(m+1)+'월';
+  const first=new Date(y,m,1), startDow=first.getDay();
+  const td=ymd(new Date());
+  let h=WD.map((w,i)=>'<div class="wd'+(i===0?' sun':i===6?' sat':'')+'">'+w+'</div>').join('');
+  const start=new Date(y,m,1-startDow);
+  const cells = Math.ceil((startDow+new Date(y,m+1,0).getDate())/7)*7;
+  for(let i=0;i<cells;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i); const ds=ymd(d);
+    const t=typeById(shiftOf(ds)); const hn=holidayName(ds); const o=S.overrides[ds];
+    const cls=['day']; if(d.getMonth()!==m) cls.push('out'); if(ds===td) cls.push('is-today'); if(d.getDay()===0) cls.push('sun'); if(d.getDay()===6) cls.push('sat'); if(hn) cls.push('hol');
+    const label=(d.getMonth()+1)+'월 '+d.getDate()+'일 '+WD[d.getDay()]+'요일 '+(t?t.name:'근무 없음')+(hn?' '+hn:'')+(o&&o.memo?' 메모 '+o.memo:'');
+    h+='<button class="'+cls.join(' ')+'" data-d="'+ds+'" aria-label="'+esc(label)+'"><span class="dn">'+d.getDate()+'</span>'+chipHtml(t)+(hn?'<span class="hn">'+esc(hn)+'</span>':'')+(o&&(o.memo||o.t)?'<span class="dot" aria-hidden="true"></span>':'')+'</button>';
+  }
+  const c=document.getElementById('cal'); c.innerHTML=h;
+  c.querySelectorAll('.day').forEach(b=>b.onclick=()=>openSheet(b.dataset.d));
+}
+function openSheet(ds){
+  editDate=ds; const o=S.overrides[ds]||{}; editType=shiftOf(ds);
+  const d=parseYmd(ds); const pt=typeById(patternShift(ds));
+  document.getElementById('sheetTitle').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+WD[d.getDay()]+')';
+  const hn=holidayName(ds);
+  document.getElementById('sheetInfo').textContent='패턴상 근무: '+(pt?pt.name:'없음')+(hn?' · '+hn:'');
+  document.getElementById('sheetMemo').value=o.memo||'';
+  renderSheetTypes();
+  document.getElementById('sheetBg').classList.add('open');
+}
+function renderSheetTypes(){
+  const g=document.getElementById('sheetTypes');
+  g.innerHTML=S.types.map(t=>'<button style="background:'+esc(t.color)+'" data-id="'+esc(t.id)+'" aria-pressed="'+(t.id===editType)+'" aria-label="'+esc(t.name)+' 선택">'+esc(t.name)+'</button>').join('');
+  g.querySelectorAll('button').forEach(b=>b.onclick=()=>{ editType=b.dataset.id; renderSheetTypes(); });
+}
+function closeSheet(){ document.getElementById('sheetBg').classList.remove('open'); editDate=null; }
+
+function renderSum(){
+  const {y,m}=sview; const r=monthSummary(y,m);
+  document.getElementById('sumTitle').textContent=y+'년 '+(m+1)+'월';
+  document.getElementById('sumStat').innerHTML=
+    '<div class="s"><span>근무일</span><b>'+r.workDays+'일</b></div>'+
+    '<div class="s"><span>총 근무시간(휴게 제외)</span><b>'+fmtH(r.net)+'</b></div>'+
+    '<div class="s"><span>야간시간 22~06시</span><b>'+fmtH(r.night)+'</b></div>'+
+    '<div class="s"><span>휴일근무시간</span><b>'+fmtH(r.hol)+'</b></div>';
+  let tb='<tr><th>유형</th><th class="n">횟수</th></tr>';
+  for(const t of S.types){ tb+='<tr><td>'+chipHtml(t)+' '+esc(t.name)+'</td><td class="n">'+(r.count[t.id]||0)+'회</td></tr>'; }
+  document.getElementById('sumTable').innerHTML=tb;
+  const st=S.settings;
+  document.getElementById('payCard').innerHTML = st.wage>0
+    ? '<h2>가산수당 추정 (참고용)</h2><div class="stat"><div class="s" style="grid-column:1/3"><span>야간·휴일 가산분 합계 (통상시급 '+won(st.wage)+')</span><b>'+won(r.pay)+'</b></div></div><p class="muted">기본급은 포함하지 않은 가산분만의 추정치입니다. 실제 지급액은 회사 규정이 우선합니다.</p>'
+    : '<h2>가산수당 추정</h2><p class="muted">설정에서 통상시급을 입력하면 야간·휴일 가산분을 추정해 보여줍니다.</p><button class="btn sm" id="goSet" aria-label="설정으로 이동">시급 입력하기</button>';
+  const gs=document.getElementById('goSet'); if(gs) gs.onclick=()=>showTab('set');
+  const memos=r.days.filter(x=>S.overrides[x.ds]);
+  document.getElementById('sumMemo').innerHTML = memos.length ? memos.map(x=>{ const o=S.overrides[x.ds]; const d=parseYmd(x.ds); return '<div class="item">'+chipHtml(x.t)+'<div><b>'+(d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')</b> <span class="muted">'+(o.t?'근무 변경':'')+'</span><div>'+esc(o.memo||'')+'</div></div></div>'; }).join('') : '<p class="muted">변경하거나 메모한 날이 없습니다.</p>';
+}
+function monthText(y,m){
+  const r=monthSummary(y,m);
+  let s=y+'년 '+(m+1)+'월 근무표\n';
+  for(const x of r.days){ const d=parseYmd(x.ds); const o=S.overrides[x.ds]; s+=d.getDate()+'('+WD[d.getDay()]+') '+(x.t?x.t.name:'-')+(o&&o.memo?' · '+o.memo:'')+'\n'; }
+  s+='근무 '+r.workDays+'일 · '+fmtH(r.net)+' (야간 '+fmtH(r.night)+')';
+  return s;
+}
+
+function renderPat(){
+  const pl=document.getElementById('periodList');
+  if(!S.periods.length) pl.innerHTML='<p class="muted">아직 없습니다. 아래에서 첫 패턴을 적용하세요.</p>';
+  else {
+    pl.innerHTML=S.periods.map((p,i)=>{ const next=S.periods[i+1]; const until= next? '~ '+addDays(next.from,-1) : '~ 계속';
+      return '<div class="item"><div style="flex:1"><b>'+esc(p.from)+'</b> <span class="muted">'+esc(until)+'</span><div class="seq" style="margin-top:4px">'+p.seq.map(id=>chipHtml(typeById(id))).join('')+'</div></div><button class="btn sm warn" data-i="'+i+'" aria-label="'+esc(p.from)+' 시작 패턴 삭제">삭제</button></div>'; }).join('');
+    pl.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
+      const i=Number(b.dataset.i); if(!confirm(S.periods[i].from+'부터 적용된 패턴을 삭제할까요? 해당 기간은 직전 패턴으로 이어집니다.')) return;
+      S.periods.splice(i,1); save(); renderAll(); });
+  }
+  const ps=document.getElementById('preset');
+  if(!ps.options.length){ ps.innerHTML=PRESETS.map((p,i)=>'<option value="'+i+'">'+esc(p.name)+'</option>').join(''); }
+  renderSeq();
+  const bt=document.getElementById('seqBtns');
+  bt.innerHTML=S.types.map(t=>'<button style="background:'+esc(t.color)+'" data-id="'+esc(t.id)+'" aria-label="'+esc(t.name)+' 칸 추가">+ '+esc(t.name)+'</button>').join('');
+  bt.querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(seqDraft.length>=60) return; seqDraft.push(b.dataset.id); renderSeq(); });
+  renderTypes();
+}
+function renderSeq(){
+  document.getElementById('seqView').innerHTML = seqDraft.length ? seqDraft.map(id=>chipHtml(typeById(id))).join('') : '<span class="muted">비어 있음</span>';
+  const off=document.getElementById('pOffset'); const cur=off.value;
+  off.innerHTML=seqDraft.map((id,i)=>{ const t=typeById(id); return '<option value="'+i+'">'+(i+1)+'번째 칸 ('+esc(t?t.name:id)+')</option>'; }).join('');
+  if(cur && Number(cur)<seqDraft.length) off.value=cur;
+}
+function renderTypes(){
+  const tl=document.getElementById('typeList');
+  tl.innerHTML=S.types.map((t,i)=>
+    '<div class="item" style="flex-direction:column;align-items:stretch">'+
+      '<div class="row"><input type="color" value="'+esc(t.color)+'" data-k="color" data-i="'+i+'" aria-label="'+esc(t.name)+' 색상">'+
+      '<input type="text" value="'+esc(t.short)+'" maxlength="2" data-k="short" data-i="'+i+'" style="width:56px;text-align:center" aria-label="'+esc(t.name)+' 약칭">'+
+      '<input type="text" value="'+esc(t.name)+'" maxlength="20" data-k="name" data-i="'+i+'" aria-label="근무 유형 이름"></div>'+
+      '<label class="row" style="min-height:44px"><input type="checkbox" data-k="work" data-i="'+i+'" '+(t.work?'checked':'')+' style="width:22px;height:22px"><span>근무시간 있음</span></label>'+
+      (t.work?'<div class="grid2"><div><label class="f">시작</label><input type="time" value="'+esc(t.start)+'" data-k="start" data-i="'+i+'" aria-label="'+esc(t.name)+' 시작 시각"></div><div><label class="f">종료</label><input type="time" value="'+esc(t.end)+'" data-k="end" data-i="'+i+'" aria-label="'+esc(t.name)+' 종료 시각"></div></div><label class="f">휴게(분)</label><input type="number" min="0" value="'+(t.brk||0)+'" data-k="brk" data-i="'+i+'" aria-label="'+esc(t.name)+' 휴게시간(분)">':'')+
+      '<div class="row" style="margin-top:6px"><span class="muted">'+(t.work&&t.start?'하루 '+fmtH(hoursOf(t).net)+' · 야간 '+fmtH(hoursOf(t).night):'근무시간 없음')+'</span><span class="spacer"></span><button class="btn sm warn" data-del="'+i+'" aria-label="'+esc(t.name)+' 유형 삭제">삭제</button></div>'+
+    '</div>').join('');
+  tl.querySelectorAll('input[data-k]').forEach(inp=>inp.onchange=()=>{
+    const t=S.types[Number(inp.dataset.i)]; const k=inp.dataset.k;
+    if(k==='work') t.work=inp.checked; else if(k==='brk') t.brk=Math.max(0,Number(inp.value)||0);
+    else if(k==='short') t.short=(inp.value.trim()||'?').slice(0,2); else if(k==='name') t.name=(inp.value.trim()||'근무').slice(0,20);
+    else if(k==='color') t.color=/^#[0-9a-fA-F]{6}$/.test(inp.value)?inp.value:t.color; else t[k]=validTime(inp.value);
+    save(); renderAll(); });
+  tl.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>{
+    const t=S.types[Number(b.dataset.del)];
+    const used=S.periods.some(p=>p.seq.includes(t.id)) || Object.values(S.overrides).some(o=>o.t===t.id) || seqDraft.includes(t.id);
+    if(used){ toast('패턴이나 기록에 쓰인 유형은 삭제할 수 없습니다.'); return; }
+    if(!confirm(t.name+' 유형을 삭제할까요?')) return;
+    S.types.splice(Number(b.dataset.del),1); save(); renderAll(); });
+}
+function renderSet(){
+  const st=S.settings;
+  for(const k of ['wage','nightRate','holRate','hol8Rate']) document.getElementById(k).value=st[k];
+  document.getElementById('sunHol').checked=!!st.sunHol;
+  const keys=Object.keys(S.custHol).sort();
+  document.getElementById('chList').innerHTML = keys.length ? keys.map(k=>'<div class="item"><b>'+esc(k)+'</b><span>'+esc(S.custHol[k])+'</span><span class="spacer"></span><button class="btn sm warn" data-k="'+esc(k)+'" aria-label="'+esc(k)+' 휴일 삭제">삭제</button></div>').join('') : '<p class="muted">추가한 휴일이 없습니다.</p>';
+  document.querySelectorAll('#chList button[data-k]').forEach(b=>b.onclick=()=>{ delete S.custHol[b.dataset.k]; save(); renderAll(); });
+}
+function renderAll(){ renderToday(); renderCal(); renderSum(); renderPat(); renderSet(); }
+
+/* ---------- 탭 ---------- */
+function showTab(name){
+  for(const s of ['cal','sum','pat','set']) document.getElementById('tab-'+s).classList.toggle('hidden', s!==name);
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===name)));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+
+/* ---------- 이벤트 ---------- */
+function shiftMonth(v,n){ const d=new Date(v.y,v.m+n,1); v.y=d.getFullYear(); v.m=d.getMonth(); }
+document.getElementById('prevM').onclick=()=>{ shiftMonth(view,-1); renderCal(); };
+document.getElementById('nextM').onclick=()=>{ shiftMonth(view,1); renderCal(); };
+document.getElementById('goToday').onclick=()=>{ const n=new Date(); view={y:n.getFullYear(), m:n.getMonth()}; renderCal(); };
+document.getElementById('prevS').onclick=()=>{ shiftMonth(sview,-1); renderSum(); };
+document.getElementById('nextS').onclick=()=>{ shiftMonth(sview,1); renderSum(); };
+document.getElementById('sheetClose').onclick=closeSheet;
+document.getElementById('sheetBg').addEventListener('click',e=>{ if(e.target.id==='sheetBg') closeSheet(); });
+document.getElementById('sheetSave').onclick=()=>{
+  if(!editDate) return;
+  const memo=document.getElementById('sheetMemo').value.trim().slice(0,60);
+  const pt=patternShift(editDate);
+  const t = editType && editType!==pt ? editType : '';
+  if(!t && !memo) delete S.overrides[editDate]; else S.overrides[editDate]={t, memo};
+  save(); closeSheet(); renderAll(); toast('저장했습니다.');
+};
+document.getElementById('sheetReset').onclick=()=>{ if(!editDate) return; delete S.overrides[editDate]; save(); closeSheet(); renderAll(); toast('패턴대로 되돌렸습니다.'); };
+document.getElementById('preset').onchange=e=>{ seqDraft=PRESETS[Number(e.target.value)].seq.filter(id=>typeById(id)); renderSeq(); };
+document.getElementById('seqBack').onclick=()=>{ seqDraft.pop(); renderSeq(); };
+document.getElementById('seqClear').onclick=()=>{ seqDraft=[]; renderSeq(); };
+document.getElementById('applyPat').onclick=()=>{
+  const from=document.getElementById('pFrom').value;
+  if(!isYmd(from)){ toast('시작일을 선택하세요.'); return; }
+  if(!seqDraft.length){ toast('근무 순서를 한 칸 이상 넣어 주세요.'); return; }
+  const off=Number(document.getElementById('pOffset').value)||0;
+  const seq=seqDraft.slice(off).concat(seqDraft.slice(0,off));
+  S.periods=S.periods.filter(p=>p.from!==from); S.periods.push({from, seq}); S.periods.sort((a,b)=>a.from<b.from?-1:1);
+  save(); renderAll(); toast(from+'부터 새 패턴을 적용했습니다. 이전 기록은 그대로입니다.');
+};
+document.getElementById('addType').onclick=()=>{
+  let n=1; while(S.types.some(t=>t.id==='U'+n)) n++;
+  S.types.push({id:'U'+n, name:'새 근무', short:'새', color:'#C0392B', start:'09:00', end:'18:00', brk:60, work:true});
+  save(); renderAll();
+};
+for(const k of ['wage','nightRate','holRate','hol8Rate']){
+  document.getElementById(k).onchange=e=>{ const v=Number(e.target.value); S.settings[k]= isFinite(v)&&v>=0 ? v : 0; save(); renderSum(); };
+}
+document.getElementById('sunHol').onchange=e=>{ S.settings.sunHol=e.target.checked; save(); renderSum(); };
+document.getElementById('chAdd').onclick=()=>{
+  const d=document.getElementById('chDate').value, nm=document.getElementById('chName').value.trim().slice(0,20);
+  if(!isYmd(d)||!nm){ toast('날짜와 이름을 입력하세요.'); return; }
+  S.custHol[d]=nm; save(); document.getElementById('chName').value=''; renderAll(); toast('휴일을 추가했습니다.');
+};
+document.getElementById('copyMonth').onclick=async()=>{
+  const txt=monthText(sview.y,sview.m);
+  try{ await navigator.clipboard.writeText(txt); toast('근무표를 복사했습니다.'); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('근무표를 복사했습니다.'); }catch(_){ toast('복사하지 못했습니다.'); } ta.remove(); }
+};
+document.getElementById('backup').onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:SLUG, version:APP_VERSION, exportedAt:new Date().toISOString(), data:S},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='교대달력_백업_'+ymd(new Date())+'.json'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); toast('백업 파일을 저장했습니다.');
+};
+document.getElementById('restoreBtn').onclick=()=>document.getElementById('restoreFile').click();
+document.getElementById('restoreFile').onchange=e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const j=JSON.parse(rd.result); const d=j&&j.data?j.data:j;
+      if(!d||!Array.isArray(d.types)) throw new Error('형식');
+      if(!confirm('현재 기록을 백업 파일 내용으로 바꿀까요?')) return;
+      S=normalize(d); save(); renderAll(); toast('복원했습니다.'); }
+    catch(err){ toast('백업 파일 형식이 올바르지 않습니다.'); }
+    e.target.value=''; };
+  rd.readAsText(f);
+};
+document.getElementById('resetAll').onclick=()=>{
+  if(!confirm('모든 근무 기록과 설정을 삭제할까요? 되돌릴 수 없습니다.')) return;
+  S=defaults(); seqDraft=[]; save(); renderAll(); toast('모두 삭제했습니다.');
+};
+
+/* ---------- 토스트 ---------- */
+let toastTimer=null;
+function toast(msg, action){
+  const el=document.getElementById('toast'), b=document.getElementById('toastBtn');
+  document.getElementById('toastMsg').textContent=msg;
+  if(action){ b.classList.remove('hidden'); b.onclick=action; } else b.classList.add('hidden');
+  el.classList.add('show'); clearTimeout(toastTimer);
+  if(!action) toastTimer=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+/* ---------- 초기화 ---------- */
+document.getElementById('hdrVer').textContent='v'+APP_VERSION;
+document.getElementById('infoVer').textContent=APP_VERSION;
+document.getElementById('pFrom').value=ymd(new Date());
+seqDraft=PRESETS[0].seq.slice();
+renderAll();
+
+/* ---------- 서비스워커 ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(reg=>{
+      const ask=w=>toast('새 버전이 준비되었습니다.',()=>{ w.postMessage({type:'SKIP_WAITING'}); });
+      if(reg.waiting && navigator.serviceWorker.controller) ask(reg.waiting);
+      reg.addEventListener('updatefound',()=>{ const w=reg.installing; if(!w) return;
+        w.addEventListener('statechange',()=>{ if(w.state==='installed' && navigator.serviceWorker.controller) ask(w); }); });
+    }).catch(()=>{});
+    const hadController=!!navigator.serviceWorker.controller;
+    let reloaded=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(!hadController||reloaded) return; reloaded=true; location.reload(); });
+  });
+}
+</script>
+</body>
+</html>
