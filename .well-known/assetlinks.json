@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "kr.qaplus.gyodae",
+        "sha256_cert_fingerprints": ["08:12:6C:41:1A:CE:59:D3:DB:7D:49:58:A3:6E:DC:21:2D:86:26:6F:98:9D:0E:FE:22:A9:E7:DB:2C:F5:85:C3"]
+      }
+    }]
